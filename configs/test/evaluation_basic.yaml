@@ -1,0 +1,2 @@
+mode: 'evaluation'
+metrics: ['ssim', 'psnr', 'lpips']

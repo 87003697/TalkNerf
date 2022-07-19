@@ -1,0 +1,2 @@
+_target_: nerf_utils.renderer.renderer_nerf.RadianceFieldRenderer
+visualization: True

@@ -1,0 +1,28 @@
+train: True
+test: False
+seed: 3
+
+stats_print_interval: 10
+validation_epoch_interval: 30
+checkpoint_epoch_interval: 30
+
+precache_rays: True
+engine: basic_engine
+device: cuda #cpu
+
+# checkpoints
+resume: False
+checkpoint_dir: 'checkpoints'
+resume_from: 'latest_model.pth'
+
+
+defaults:
+  - _self_
+  - data: lego # basic
+  - renderer: basic
+  - test: evaluation_basic
+  - visualization: port_basic
+  - raysampler: lego
+  - optimizer: adam_lambda_lego
+  - implicit_function: basic
+  - validation: basic

@@ -1,0 +1,7 @@
+# nerf configs
+n_harmonic_functions_xyz: 10
+n_hidden_neurons_xyz: 256
+density_noise_std: 0.0
+n_layers_xyz: 2
+transparent_init: False
+num_idxes: [64]

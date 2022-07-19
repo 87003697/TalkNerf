@@ -1,0 +1,15 @@
+# nerf configs
+n_harmonic_functions_xyz: 10
+n_hidden_neurons_xyz: 256
+density_noise_std: 0.0
+n_layers_xyz: 2
+transparent_init: False
+num_idxes: [64]
+# gpen configs
+narrow: 1
+channel_multiplier: 1
+isconcat: False
+lr_mlp: 1.0
+blur_kernel: [1,3,3,1]
+n_mlp: 4
+audio_dim: 464

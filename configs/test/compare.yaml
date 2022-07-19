@@ -1,0 +1,3 @@
+mode: 'export_video'
+fps: 20
+with_gt: True

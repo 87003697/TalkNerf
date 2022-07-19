@@ -1,0 +1,9 @@
+n_pts_per_ray: 64
+n_pts_per_ray_fine: 128
+n_rays_per_image: 1600
+min_depth: 0.5680095434188843
+max_depth: 1.1680095434188842
+stratified: True
+stratified_test: False
+chunk_size_test: 8100
+rect_sample_rate: 0.95

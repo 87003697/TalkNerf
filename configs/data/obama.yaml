@@ -1,0 +1,11 @@
+dataset:
+  _target_: data.obama_dataset.ObamaDataset
+  basedir: /home/15288906612/codes/talknerf/datasets/Obama_512
+  preload_image: True
+  image_size: [450, 450]
+  dataset_name: obama
+  with_parsing: False
+dataloader:
+  batch_size: 1  
+  num_workers: 0
+  collate_fn: trivial_collate

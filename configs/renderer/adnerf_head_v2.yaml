@@ -1,0 +1,2 @@
+_target_: nerf_utils.renderer.renderer_adnerf_v2.AudioDrivenRadianceFieldRenderer_v2
+visualization: True

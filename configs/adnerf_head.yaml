@@ -1,0 +1,34 @@
+train: True
+test: False
+seed: 3
+
+stats_print_interval: 100
+validation_epoch_interval: 1
+checkpoint_epoch_interval: 1
+
+precache_rays: True
+engine: adnerf_head_engine
+device: cuda #cpu
+
+white_bg: True
+
+# checkpoints
+resume: False
+checkpoint_dir: 'checkpoints'
+resume_from: 'latest_model.pth'
+
+# special characters
+nosmo_epoches: 1000000 # -1
+smo_size: 8
+
+defaults:
+  - _self_
+  - data: obama_batch_parse # basic
+  - renderer: adnerf_head
+  - test: evaluation_basic
+  - visualization: port_adnerf
+  - raysampler: adnerf
+  - optimizer: adam_lambda_adnerf
+  - implicit_function: adnerf
+  - validation: basic
+  - components: adnerf

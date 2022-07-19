@@ -1,0 +1,17 @@
+_target_: gan_utils.generators.eg3d_gen.Generator
+z_dim: 512 # Input latent (Z) dimensionality
+c_dim: 16 # Conditioning label (C) dimensionality.
+w_dim: 512  # Intermediate latent (W) dimensionality.
+img_resolution: 512
+img_channels: 96 # Number of output color channels.
+backbone_resolution: 128 # stylegan2的输出，组成volume,
+mapping_kwargs:
+  num_layers: 8
+nerf_decoder_kwargs:
+  in_c: 32
+  mid_c: 64
+  out_c: 32
+use_noise: False
+fused_modconv_default: 'inference_only'
+conv_clamp: None
+# visualization: True

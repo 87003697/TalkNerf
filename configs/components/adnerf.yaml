@@ -1,0 +1,8 @@
+AudioNet:
+  _target_: nerf_utils.components.ad_nerf.AudioNet
+  dim_aud: 64 # dimension of audio features for NeRF
+  seq_len: 16 # win_size of the feature
+AudioAttNet: # the components are exactly different
+  _target_: nerf_utils.components.ad_nerf.AudioAttNet
+  dim_aud: 32
+  seq_len: 8

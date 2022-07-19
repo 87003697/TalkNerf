@@ -1,0 +1,5 @@
+history_size: 20
+visdom: True
+visdom_server: 'localhost'
+visdom_port: 8097
+visdom_env: 'eg3d'

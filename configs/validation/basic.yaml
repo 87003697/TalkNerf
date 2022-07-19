@@ -1,0 +1,3 @@
+num_samples: 20 # the total number of samples for validation
+replacement: False  # samling with replacement
+one_iter: True # only validation on a batch of data

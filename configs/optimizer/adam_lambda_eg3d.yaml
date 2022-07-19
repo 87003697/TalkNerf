@@ -1,0 +1,12 @@
+max_epochs: 55
+algo: Adam
+lr: 0.0025
+schedule:
+  type: LambdaLR
+  step_size: 25
+  verbose: True
+  gamma: 0.1
+
+
+
+  
