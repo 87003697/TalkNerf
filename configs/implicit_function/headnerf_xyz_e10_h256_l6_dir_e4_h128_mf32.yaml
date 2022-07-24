@@ -3,8 +3,12 @@ n_harmonic_functions_dir: 4
 n_hidden_neurons_xyz: 256
 n_hidden_neurons_dir: 128
 density_noise_std: 0.0
-n_layers_xyz: 8
-dim_aud: 64
+n_layers_xyz: 6
 transparent_init: False
-render_size: [512, 512]
-
+return_feat: True
+dim_aud: 64
+seq_len: 16
+render_size: [64, 64]
+sample_stages: ['coarse']
+color_dim: 256
+min_feat: 32

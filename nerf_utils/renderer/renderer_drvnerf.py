@@ -19,6 +19,7 @@ class DrivingRadianceFieldRenderer(RadianceFieldRenderer):
         self,
         dim_aud: Optional[int]=None,
         sample_stages: list[str] = ["coarse", "fine"],
+        color_dim: int = 3,
         **kwargs
     ):
         """
@@ -99,7 +100,8 @@ class DrivingRadianceFieldRenderer(RadianceFieldRenderer):
                 'n_layers_xyz': n_layers_xyz,
                 'append_xyz': append_xyz,
                 'transparent_init': transparent_init,
-                'return_feat':return_feat} # arguments that original NeuralRadianceField in vanillar Nerf used
+                'return_feat':return_feat,
+                'color_dim': color_dim,} # arguments that original NeuralRadianceField in vanillar Nerf used
             if dim_aud is not None:
                 from nerf_utils.implicit_function.adnerf import AudioDrivenNeuralRadianceField
                 self._implicit_function[render_pass] = AudioDrivenNeuralRadianceField(

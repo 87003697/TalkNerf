@@ -86,9 +86,8 @@ class FullNeRFRaysampler(NeRFRaysampler):
     ): # -> RayBundle
         """
         Args:
-            Others same as NeRFRaysampler
-        Returns:
-            Same as NeRFRaysampler
+            Othe    vbfcvdswqqwwcvdfdfdffddfsdaw        
+            Same a···················   s NeRFRaysampler
         """
         # prepare arguments that vanilla Nerf used
         cameras = kwargs.get('cameras')

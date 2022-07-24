@@ -1,5 +1,5 @@
 discriminator:
   _target_: gan_utils.discriminators.eg3d_dis.Discriminator
   size: 512
-  channel_multiplier: 2
-  narrow: 1.0
+  channel_multiplier: 1
+  narrow: 0.5

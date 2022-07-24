@@ -15,6 +15,7 @@ from .basic_engine import NerfEngine as BasicEngine
 from .utils import Stats, visualize_nerfgan_bgmask_outputs
 from gan_utils.losses import lpips
 from gan_utils.losses.id.id_loss import IDLoss
+import importlib
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +30,28 @@ class NerfEngine(BasicEngine):
         
         self.device = cfg.device
         log.info('Specify {} as the device.'.format(self.device))
+
+    def _load_dataset_test(self,
+                           datasets:object):
+        self.test_datasets = datasets.test
+        if self.cfg.test.mode == 'evaluation' :
+            log.info('Loading test datasets for evaluations..')
+                
+        if self.cfg.test.mode == 'export_video':
+            log.info('Loading test datasets for visualization..')
+
+            # store the video in director
+            self.export_dir = 'visualization'
+            os.makedirs(self.export_dir, exist_ok = True)
+        self.test_dataloaders = []
+        for dataset in self.test_datasets:
+            self.test_dataloaders.append(
+                torch.utils.data.DataLoader(
+                    dataset,
+                    batch_size=1,
+                    shuffle=False,
+                    num_workers=0,
+                    collate_fn=getattr(importlib.import_module('data.utils'), self.cfg.data.dataloader.collate_fn)))
 
     # gan function
     def requires_grad(self, 
@@ -68,7 +91,13 @@ class NerfEngine(BasicEngine):
 
                 gt_image = image.permute(0, 3, 1, 2).to(self.device)
                 parsing = parsing.permute(0, 3, 1, 2).to(self.device)
-                    
+                
+                face_mask = ((parsing[:,0,:,:] == 0) * (parsing[:,1,:,:] == 0) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
+                bg_mask = ((parsing[:,0,:,:] == 1) * (parsing[:,1,:,:] == 1) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
+                torso_mask = (1 - face_mask)*(1- bg_mask)
+
+                gt_image = face_mask * gt_image + (1- face_mask) * torch.ones_like(gt_image)
+
                 loss_dict = {}                
                 #####################################################
                 if self.cfg.losses.gan > 0:
@@ -148,9 +177,6 @@ class NerfEngine(BasicEngine):
                 else:
                     id_loss = torch.tensor(0)
                 
-                face_mask = ((parsing[:,0,:,:] == 0) * (parsing[:,1,:,:] == 0) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
-                bg_mask = ((parsing[:,0,:,:] == 1) * (parsing[:,1,:,:] == 1) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
-                torso_mask = (1 - face_mask)*(1- bg_mask)
                 
                 # # for debug
                 # from PIL import Image; import numpy as np
@@ -171,7 +197,7 @@ class NerfEngine(BasicEngine):
                 mask_sumup = lambda preds, gts, masks: sum([self.l1_func(mask * pred, mask * gt) for pred, gt, mask in zip(preds, gts, masks)])
 
                 l1_loss = dumy_sumup(image_list, gt_image_list)
-                l1_mask_loss = dumy_sumup(mask_list, face_mask_list)
+                l1_mask_loss = mask_sumup(mask_list, face_mask_list, face_mask_list)
                 l1_face_loss = mask_sumup(image_list, gt_image_list, face_mask_list)
                 
 
@@ -181,13 +207,18 @@ class NerfEngine(BasicEngine):
 
                 g_loss = l1_loss + \
                     self.cfg.losses.l1_face * l1_face_loss + \
-                    self.cfg.losses.mask * l1_mask_loss
+                    self.cfg.losses.mask * l1_mask_loss + \
+                    self.cfg.losses.gan * gan_loss + \
+                    self.cfg.losses.percept * percept_loss
 
                 loss_dict['loss_gen'] = g_loss
                 loss_dict['gen_l1_face'] = l1_face_loss
                 loss_dict['gen_l1_mask'] = l1_mask_loss
                 loss_dict['gen_psnr'] =  -10.0 * torch.log10( torch.mean((nerf_out - gt_image) ** 2)) 
-
+                if self.cfg.losses.gan > 0:
+                    loss_dict['gen_gan'] = gan_loss
+                if self.cfg.losses.percept > 0:
+                    loss_dict['gen_percept'] = percept_loss
 
                 # #####################################################
                 # # generate multi-resolution images and masks
@@ -340,20 +371,21 @@ class NerfEngine(BasicEngine):
                         needs_mask = False,
                         **other_params)
 
+
                 # TODO
                 # Writing images
-                frame = test_image_list["rgb_fine"].detach().cpu()
+                frame = test_image_list[-1].detach().cpu()
                 frame_path = os.path.join(self.export_dir, f"scene_{num_dataset:01d}_frame_{iteration:05d}.png")
                 log.info(f"Writing {frame_path}")
-                tensor2np = lambda x: (x.detach().cpu().numpy() * 255.0).astype(np.uint8)
+                tensor2np = lambda x: ((x if x.shape[-1] <= 3 else x.permute(0,2,3,1)).detach().cpu().numpy() * 255.0).astype(np.uint8)
                 if self.cfg.test.with_gt:
                     Image.fromarray(
                         np.hstack([
-                            tensor2np(test_image),
-                            tensor2np(frame)])
+                            tensor2np(test_image)[0],
+                            tensor2np(frame)[0]])
                         ).save(frame_path)
                 else:
-                    Image.fromarray(tensor2np(frame)).save(frame_path)
+                    Image.fromarray(tensor2np(frame)[0]).save(frame_path)
                 frame_paths.append(frame_path)
                                 
         # Convert the exported frames to a video
@@ -416,8 +448,8 @@ class NerfEngine(BasicEngine):
                 resize = lambda image, h, w : F.interpolate(image, (h, w)) if image.shape[-2] != h or image.shape[-1] != w else image
                 multi_res = lambda image: [resize(image, *res_out.shape[-2:]) for res_out in val_image_list]
 
-                gt_image_list = multi_res(gt_image * face_mask)
-
+                gt_image_list = multi_res(gt_image * face_mask + (1 - face_mask))
+                
                 val_nerf_out = val_image_list[-1]
                 gt_image = gt_image_list[-1]
 
@@ -538,7 +570,7 @@ class NerfEngine(BasicEngine):
             log.info('Resuming weights from checkpoint {}..'.format(self.cfg.resume_from))
             loaded_data = torch.load(self.cfg.resume_from)
             # other states
-            self.stats = pickle.loads(loaded_data['stats'])
+            self.stats = pickle.loads(loaded_data['state'])
             self.start_epoch = self.stats.epoch
             # model related
             self.gen.load_state_dict(loaded_data['gen'])

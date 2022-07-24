@@ -1,6 +1,4 @@
-from numpy import fix
 import torch
-import torch.nn.functional as F
 from typing import List, Optional, Tuple
 from pytorch3d.renderer import ImplicitRenderer
 from pytorch3d.renderer.cameras import CamerasBase
@@ -22,9 +20,7 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
     def __init__(
         self,
         dim_aud: int,
-        render_size: Tuple[int, int],
-        rect_sample_rate: float,
-        fix_grid: bool = False,   
+        rect_sample_rate: float,   
         **kwargs
     ):
         """
@@ -64,7 +60,6 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
         
         # Parse out image dimensions.
         self.image_height, self.image_width = image_size
-        self.render_height, self.render_width = render_size
 
         for render_pass in ("coarse", "fine"):
             if render_pass == "coarse":
@@ -80,7 +75,6 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
                     'image_width': self.image_width} # arguments that original NeRFRaysampler in vanillar Nerf used
                 raysampler = RectangularNeRFRaysampler(
                     rect_sample_rate=rect_sample_rate,
-                    fix_grid=fix_grid,
                     **other_kwargs)
             elif render_pass == "fine":
                 # Initialize the fine raysampler.
@@ -140,8 +134,8 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
         camera_hash = kwargs.get('camera_hash', None) # Optional[str]
         camera = kwargs.get('camera') # CamerasBase
         image = kwargs.get('image') # torch.Tensor
-        image_height = self.render_height if image_height == None else image_height
-        image_width = self.render_width if image_width == None else image_width
+        image_height = self.image_height if image_height == None else image_height
+        image_width = self.image_width if image_width == None else image_width
         
         if not self.training:
             # Full evaluation pass.
@@ -167,8 +161,6 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
                 rect = rect,
                 chunk_idx = chunk_idx,
                 bg_image = bg_image, 
-                image_height = image_height,
-                image_width = image_width,
                 **other_kwargs)
             for chunk_idx in range(n_chunks)]
 
@@ -182,7 +174,7 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
                 k: torch.cat(
                     [ch_o[k] for ch_o in chunk_outputs],
                     dim=1,
-                ).view(-1, image_height, image_width, 3)
+                ).view(-1, *self._image_size, 3)
                 if chunk_outputs[0][k] is not None
                 else None
                 for k in ("rgb_fine", "rgb_coarse", "rgb_gt")
@@ -209,8 +201,6 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
         aud_para: torch.Tensor,
         rect: Optional[torch.Tensor] = None, 
         bg_image: Optional[torch.Tensor] = None,
-        image_height: Optional[int] = None,
-        image_width: Optional[int] = None,
         **kwargs
     ): # -> dict
         """
@@ -233,10 +223,6 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
         coarse_ray_bundle = None
         coarse_weights = None
 
-        # Prepare rendering size
-        image_height = self.render_height if image_height == None else image_height
-        image_width = self.render_width if image_width == None else image_width
-
         # First evaluate the coarse rendering pass, then the fine one.
         for renderer_pass in ("coarse", "fine"):
             render_kwargs = {
@@ -253,8 +239,6 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
                     aud_para=aud_para,
                     rect = rect,
                     bg_image = bg_image,
-                    image_height = image_height,
-                    image_width = image_width,
                     **render_kwargs,)
                 rgb_coarse = rgb
                 # Store the weights and the rays of the first rendering pass
@@ -265,22 +249,12 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
                     "input_ray_bundle":coarse_ray_bundle,
                     "ray_weights":coarse_weights,
                 })
-
                 if image is not None:
                     # Sample the ground truth images at the xy locations of the
                     # rendering ray pixels.
                     other_kwargs = {
-                        'target_images': F.interpolate(
-                            image[None].permute(0,3,1,2,), 
-                            (image_height, image_width)
-                        ).permute(0,2,3,1),
-                            #image[..., :3][None],
-                        'sampled_rays_xy': torch.cat((
-                            ray_bundle_out.xys[...,:1] / self.image_height * image_height,
-                            ray_bundle_out.xys[...,1:2] / self.image_width * image_width,
-                        ), dim = -1),
-                            #ray_bundle_out.xys
-                        } # # other arguments for sample_images_at_mc_locs function in vanilla Nerf
+                        'target_images': image[..., :3][None],
+                        'sampled_rays_xy': ray_bundle_out.xys} # # other arguments for sample_images_at_mc_locs function in vanilla Nerf
                     rgb_gt = sample_images_at_int_locs(
                         **other_kwargs)
                 else:
@@ -296,11 +270,7 @@ class AudioDrivenRadianceFieldRenderer(RadianceFieldRenderer):
             else:
                 raise ValueError(f"No such rendering pass {renderer_pass}")
 
-        out = {
-            "rgb_fine": rgb_fine, 
-            "rgb_coarse": rgb_coarse, 
-            "rgb_gt": rgb_gt
-            }
+        out = {"rgb_fine": rgb_fine, "rgb_coarse": rgb_coarse, "rgb_gt": rgb_gt}
         if self.visualization:
             # Store the coarse rays/weights only for visualization purposes.
             out["coarse_ray_bundle"] = type(coarse_ray_bundle)(

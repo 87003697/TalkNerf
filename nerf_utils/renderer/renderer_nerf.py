@@ -1,3 +1,4 @@
+from pyparsing import col
 import torch
 from typing import List, Optional, Tuple
 from pytorch3d.renderer import ImplicitRenderer
@@ -63,6 +64,7 @@ class RadianceFieldRenderer(torch.nn.Module):
         visualization: bool = False,
         transparent_init: bool = False,
         return_feat: bool = False,
+        color_dim: int = 3,
     ):
         """
         Args:
@@ -152,6 +154,7 @@ class RadianceFieldRenderer(torch.nn.Module):
                 append_xyz=append_xyz,
                 transparent_init=transparent_init,
                 return_feat=return_feat,
+                color_dim=color_dim,
             )
             
 

@@ -65,36 +65,23 @@ class EmissionAbsorptionADNeRFRaymarcher(EmissionAbsorptionRaymarcher):
         )
         weights = rays_densities * absorption
 
-        # pick up background values
-        bg_pixels = []
-        ba = rays_densities.shape[0]
+        if bg_image is not None:
+            # pick up background values
+            bg_pixels = []
 
-        # reshape bg_image
-        if len(bg_image.shape) == 3: # 3 channels to 4 channels
-            bg_image = bg_image.unsqueeze(0)
-        if bg_image.shape[1] == 3: # channel last to channel first
-            bg_image = bg_image.permute(0, 2, 3, 1)
+            # reshape bg_image
+            if len(bg_image.shape) == 3: # 3 channels to 4 channels
+                bg_image = bg_image.unsqueeze(0)
+            if bg_image.shape[1] == 3: # channel last to channel first
+                bg_image = bg_image.permute(0, 2, 3, 1)
 
-        bg_pixels = sample_images_at_int_locs(bg_image, ray_bundle.xys.type(torch.LongTensor))
+            bg_pixels = sample_images_at_int_locs(bg_image, ray_bundle.xys.type(torch.LongTensor))
 
-        # for idx in range(ba):
-        #     if len(bg_image.shape) == 4: # 4 channels to 3 channels
-        #         _bg_image = bg_image[idx]
-        #     else:
-        #         _bg_image = bg_image
-        #     if _bg_image.shape[0] == 3: # channel first to channel last
-        #         _bg_image = _bg_image.permute(1, 2, 0)
-        #     pixels = _bg_image[pixel_idxs[idx,:,0], pixel_idxs[idx,:,1]]
-            # bg_pixels.append(pixels[None])
-        # bg_pixels = torch.cat(bg_pixels)
-
-        # append the background color to the ray_features
-        
-        # rays_features[...,-1:,:3] += bg_pixels.unsqueeze(-2)
-
-        # final color
-        features = (weights[..., None] * rays_features).sum(dim=-2) + \
-            (1 - weights[..., None].sum(dim=-2)) * bg_pixels
+            # final color
+            features = (weights[..., None] * rays_features).sum(dim=-2) + \
+                (1 - weights[..., None].sum(dim=-2)) * bg_pixels
+        else:
+            features = (weights[..., None] * rays_features).sum(dim=-2)
 
         if not return_feat:
             return features, weights

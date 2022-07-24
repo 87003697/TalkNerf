@@ -30,6 +30,7 @@ class NeuralRadianceField(torch.nn.Module):
         use_multiple_streams: bool = True,
         transparent_init: bool = False,
         return_feat: bool = False,
+        color_dim: int = 3,
         **kwargs,
     ):
         """
@@ -54,7 +55,7 @@ class NeuralRadianceField(torch.nn.Module):
             transparenet_init: sine original MLP initialization in Nerf tend to transparenet start,
                 re-initialize the parameters
             return_feat: turn on to return the final latent feature of MLP
-            
+            color_dim: if set 3 as default, can represent rgb values; otherwise, will be a feature for further usage.
         """
         super().__init__()
 
@@ -95,7 +96,7 @@ class NeuralRadianceField(torch.nn.Module):
                 n_hidden_neurons_xyz + embedding_dim_dir, n_hidden_neurons_dir
             ),
             torch.nn.ReLU(True),
-            torch.nn.Linear(n_hidden_neurons_dir, 3),
+            torch.nn.Linear(n_hidden_neurons_dir, color_dim),
             torch.nn.Sigmoid(),
         )
         self.use_multiple_streams = use_multiple_streams
@@ -142,7 +143,10 @@ class NeuralRadianceField(torch.nn.Module):
         # Obtain the harmonic embedding of the normalized ray directions.
         rays_embedding = self.harmonic_embedding_dir(rays_directions_normed)
 
-        return self.color_layer((self.intermediate_linear(features), rays_embedding))
+        tmp_feat = self.color_layer[:-1]((self.intermediate_linear(features), rays_embedding))
+        
+        return self.color_layer[-1](tmp_feat), tmp_feat
+
 
     def _get_densities_and_colors(
         self, features: torch.Tensor, ray_bundle: RayBundle, density_noise_std: float
@@ -174,7 +178,7 @@ class NeuralRadianceField(torch.nn.Module):
                 )
                 # rays_densities.shape = [minibatch x ... x 1] in [0-1]
 
-            rays_colors = self._get_colors(features, ray_bundle.directions)
+            rays_colors, features = self._get_colors(features, ray_bundle.directions)
             # rays_colors.shape = [minibatch x ... x 3] in [0-1]
 
             current_stream.wait_stream(other_stream)
@@ -183,7 +187,7 @@ class NeuralRadianceField(torch.nn.Module):
             rays_densities = self._get_densities(
                 features, ray_bundle.lengths, density_noise_std
             )
-            rays_colors = self._get_colors(features, ray_bundle.directions)
+            rays_colors, features = self._get_colors(features, ray_bundle.directions)
 
         if not self.return_feat:
             return rays_densities, rays_colors

@@ -1,0 +1,42 @@
+train: True
+test: False
+seed: 3
+
+stats_print_interval: 100
+validation_epoch_interval: 1
+checkpoint_epoch_interval: 1
+
+precache_rays: True
+engine: nerfgan_bgmask_engine
+device: cuda #cpu
+
+# checkpoints
+resume: False
+checkpoint_dir: 'checkpoints'
+resume_from: 'latest_model.pth'
+
+# special characters
+nosmo_epoches: 1000000 # -1
+smo_size: 8
+
+# loss terms 
+losses:
+  gan: 0
+  l1_face: 0
+  mask: 1
+  l1_torso: 0
+  l1_bg: 0
+  percept: 0
+  id: 0
+
+defaults:
+  - _self_
+  - data: obama_batch_parse # basic
+  - renderer: headnerf
+  - implicit_function: headnerf_xyz_e10_h256_l6_dir_e4_h128_mf32
+  - test: evaluation_basic
+  - visualization: port_headnerf
+  - raysampler: drvnerf
+  - optimizer: adam_lambda_adnerf_x2
+  - validation: basic
+  - components: eg3d
