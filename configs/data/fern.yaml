@@ -1,0 +1,10 @@
+dataset:
+  _target_: data.synthesize_dataset.SynthesizeDataset
+  dataset_name: fern
+  image_size: [378, 504]
+  autodownload: False
+  preload_image: True
+dataloader:
+  batch_size: 1
+  num_workers: 0
+  collate_fn: trivial_collate
