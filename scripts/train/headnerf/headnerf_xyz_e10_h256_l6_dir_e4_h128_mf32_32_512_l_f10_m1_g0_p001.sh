@@ -6,9 +6,9 @@ python train.py \
     losses.l1_bg=0 \
     losses.l1_torso=0 \
     losses.l1_face=10 \
-    losses.gan=0.01 \
+    losses.gan=0 \
     losses.percept=0.01 \
-    implicit_function.render_size=[64,64] \
+    implicit_function.render_size=[32,32] \
     precache_rays=False \
-    visualization.visdom_env='headnerf_xyz_e10_h256_l6_dir_e4_h128_mf32_64_512_l_f10_m1_g001_p001' \
+    visualization.visdom_env='headnerf_xyz_e10_h256_l6_dir_e4_h128_mf32_32_512_l_f10_m1_g0_p001.sh' \
     # test=null \

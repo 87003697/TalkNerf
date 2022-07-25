@@ -71,11 +71,12 @@ class FullNeRFRaysampler(NeRFRaysampler):
         Returns:
             n_chunks: The total number of chunks.
         """
-        return int(
+        n_chunks =  int(
             math.ceil(
-                (self._grid_raysampler.make_grid(image_height, image_width).numel() * 0.5 * batch_size) / chunksize
+                (self._grid_raysampler.make_grid(image_height, image_width).numel() * 0.5 ) / chunksize
             )
         )
+        return n_chunks
 
     def forward(
         self,
@@ -89,6 +90,7 @@ class FullNeRFRaysampler(NeRFRaysampler):
             Othe    vbfcvdswqqwwcvdfdfdffddfsdaw        
             Same a···················   s NeRFRaysampler
         """
+
         # prepare arguments that vanilla Nerf used
         cameras = kwargs.get('cameras')
         chunksize = kwargs.get('chunksize', None)
@@ -115,15 +117,17 @@ class FullNeRFRaysampler(NeRFRaysampler):
 
             full_ray_bundle = self._normalize_raybundle(full_ray_bundle)
 
-        n_pixels = full_ray_bundle.directions.shape[:-1].numel()
+        n_pixels = full_ray_bundle.directions.shape[1:-1].numel()
 
         # In case we test, we take only the requested chunk.
         if chunksize is None:
             chunksize = n_pixels * batch_size
 
-        chunksize = min(chunksize, n_pixels * batch_size)
-        start = chunk_idx * chunksize * batch_size
+        chunksize = min(chunksize, n_pixels)
+
+        start = chunk_idx * chunksize
         end = min(start + chunksize, n_pixels)
+
         sel_rays = torch.arange(
             start,
             end,
@@ -134,8 +138,7 @@ class FullNeRFRaysampler(NeRFRaysampler):
         # Take the "sel_rays" rays from the full ray bundle.
         ray_bundle = RayBundle(
             *[
-                v.view(n_pixels, -1)[sel_rays]
-                .view(batch_size, sel_rays.numel() // batch_size, -1)
+                v.view(batch_size, n_pixels, -1)[:, sel_rays]
                 .to(device)
                 for v in full_ray_bundle
             ]

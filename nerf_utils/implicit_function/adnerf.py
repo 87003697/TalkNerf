@@ -61,10 +61,28 @@ class AudioDrivenNeuralRadianceField(NeuralRadianceField):
         embeds_xyz = self.harmonic_embedding_xyz(rays_points_world)
         # embeds_xyz.shape = [minibatch x ... x self.n_harmonic_functions*6 + 3]
 
+
         # self.mlp maps each harmonic embedding to a latent feature space.
+        batch_size = embeds_xyz.shape[0]
+
+        # embeds_xyz.shape = torch.Size([1, 1024, 64, 63])
+        # aud_para.repeat(*embeds_xyz.shape[:-1],1).shape = torch.Size([1, 1024, 64, 64])
+        # aud_para.shape = torch.Size([64]) or torch.Size([batch_size, 64])
         features = self.mlp_xyz(
-            torch.cat([embeds_xyz, aud_para.repeat(*embeds_xyz.shape[:-1],1)], dim = -1), 
-            torch.cat([embeds_xyz, aud_para.repeat(*embeds_xyz.shape[:-1],1)], dim = -1),
+            torch.cat([
+                embeds_xyz, 
+                aud_para.repeat(*embeds_xyz.shape[:-1], 1) \
+                    if len(aud_para.shape) == 1 \
+                    else aud_para.reshape(batch_size, 1, 1, -1).repeat(1, *embeds_xyz.shape[1:-1], 1), 
+                ],
+                dim = -1), 
+            torch.cat([
+                embeds_xyz, 
+                aud_para.repeat(*embeds_xyz.shape[:-1],1) \
+                    if len(aud_para.shape) == 1 \
+                    else aud_para.reshape(batch_size, 1, 1, -1).repeat(1, *embeds_xyz.shape[1:-1], 1),
+                ], 
+            dim = -1),
         )
         # features.shape = [minibatch x ... x self.n_hidden_neurons_xyz]
 
