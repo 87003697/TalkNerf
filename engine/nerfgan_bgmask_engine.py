@@ -95,6 +95,8 @@ class NerfEngine(BasicEngine):
                 face_mask = ((parsing[:,0,:,:] == 0) * (parsing[:,1,:,:] == 0) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
                 bg_mask = ((parsing[:,0,:,:] == 1) * (parsing[:,1,:,:] == 1) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
                 torso_mask = (1 - face_mask)*(1- bg_mask)
+                if self.cfg.torso_on:
+                    face_mask = face_mask + torso_mask - face_mask * torso_mask
 
                 gt_image = face_mask * gt_image + (1- face_mask) * torch.ones_like(gt_image)
 
@@ -317,6 +319,8 @@ class NerfEngine(BasicEngine):
                 face_mask = ((parsing[:,0,:,:] == 0) * (parsing[:,1,:,:] == 0) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
                 bg_mask = ((parsing[:,0,:,:] == 1) * (parsing[:,1,:,:] == 1) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
                 torso_mask = (1 - face_mask)*(1- bg_mask)
+                if self.cfg.torson_on:
+                    face_mask = face_mask + torso_mask - face_mask * torso_mask
 
                 resize = lambda image, h, w : F.interpolate(image, (h, w)) if image.shape[-2] != h or image.shape[-1] != w else image
                 multi_res = lambda image: [resize(image, *res_out.shape[-2:]) for res_out in val_image_list]
@@ -444,6 +448,8 @@ class NerfEngine(BasicEngine):
                 face_mask = ((parsing[:,0,:,:] == 0) * (parsing[:,1,:,:] == 0) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
                 bg_mask = ((parsing[:,0,:,:] == 1) * (parsing[:,1,:,:] == 1) * (parsing[:,2,:,:] == 1) * 1.0).unsqueeze(1)
                 torso_mask = (1 - face_mask)*(1- bg_mask)
+                if self.cfg.torso_on:
+                    face_mask = face_mask + torso_mask - face_mask * torso_mask
 
                 resize = lambda image, h, w : F.interpolate(image, (h, w)) if image.shape[-2] != h or image.shape[-1] != w else image
                 multi_res = lambda image: [resize(image, *res_out.shape[-2:]) for res_out in val_image_list]
